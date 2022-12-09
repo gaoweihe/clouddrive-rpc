@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use hyperdav::Client;
 
 use crate::{datasrc::{message::message::{RpcMessage, RpcMessageMeta}}, rpc::channel::Channel};
@@ -28,7 +29,11 @@ impl Channel<RpcMessage, RpcMessageMeta> for WebDAV {
     }
 
     fn send(&mut self, msg_vec: std::vec::Vec<RpcMessage>) -> anyhow::Result<()> {
-        todo!()
+        for msg in msg_vec {
+            todo!()
+        }
+
+        Ok(())
     }
 
     fn get_unique_msg_id(&self) -> u64 {

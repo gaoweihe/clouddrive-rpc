@@ -1,4 +1,4 @@
-use std::{io::Cursor, result};
+use std::{io::Cursor};
 
 use hyperdav::Client;
 
@@ -19,8 +19,8 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
             .unwrap();
         let result = client.list(&["clouddrive-rpc"]);
         match result {
-            Ok(res) => {},
-            Err(e) => {
+            Ok(_res) => {},
+            Err(_e) => {
                 self.create_work_dir_no_check().unwrap();
             },
         }
@@ -84,7 +84,7 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
 
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
-        let result = client.request(reqwest::Method::DELETE, &[full_path]).send().unwrap();
+        let _result = client.request(reqwest::Method::DELETE, &[full_path]).send().unwrap();
 
         Ok(())
     }
@@ -95,7 +95,7 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
 
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
-        let result = client.mv(&[src_fp], &[dst_fp]).unwrap();
+        let _result = client.mv(&[src_fp], &[dst_fp]).unwrap();
 
         Ok(())
     }
@@ -114,7 +114,7 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
                     true
                 }
             },
-            Err(e) => {
+            Err(_e) => {
                 false
             },
         }
@@ -145,8 +145,8 @@ impl WebDAV {
         drop(client);
 
         match result {
-            Ok(res) => {},
-            Err(e) => {
+            Ok(_res) => {},
+            Err(_e) => {
                 self.create_work_dir_no_check().unwrap();
             },
         }
