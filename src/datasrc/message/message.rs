@@ -14,6 +14,7 @@ impl RpcMessage {
             meta: RpcMessageMeta {
                 id: 0, 
                 size: 0, 
+                msg_type: 0,
             },
             payload: std::vec::Vec::new(),
         }
@@ -39,6 +40,7 @@ impl Message<RpcMessageMeta> for RpcMessage {
 pub struct RpcMessageMeta {
     id: u64, 
     size: u64,
+    msg_type: u64,
 }
 
 impl MessageMeta for RpcMessageMeta {
@@ -48,5 +50,9 @@ impl MessageMeta for RpcMessageMeta {
 
     fn get_size(&self) -> u64 {
         self.size
+    }
+
+    fn get_msg_type(&self) -> u64 {
+        self.msg_type
     }
 }

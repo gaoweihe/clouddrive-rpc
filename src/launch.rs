@@ -33,6 +33,7 @@ pub fn launch_service() -> Result<()> {
     let result = webdav.list("".to_string()).unwrap();
     tracing::info!("result: {:?}", result);
     webdav.delete("test.cdrpc".to_string()).unwrap();
+    webdav.clear("".to_string()).unwrap();
 
     Ok(())
 }
