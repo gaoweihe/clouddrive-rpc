@@ -10,8 +10,10 @@ Building RPC applications based on cloud drive services.
 
 ```
 cargo run --bin rpc -- \
-    --username username \
-    --password password \
-    --uri webdav_uri \
-    --nodeid node_id
+    --username <username> \
+    --password <password> \
+    --uri <webdav_uri> \
+    --domain <domain> \
+    --workdir <workdir> \
+    --nodeid <node_id>
 ```
