@@ -15,5 +15,5 @@ cargo run --bin rpc -- \
     --uri <webdav_uri> \
     --domain <domain> \
     --workdir <workdir> \
-    --nodeid node_id
+    --nodeid <node_id>
 ```
