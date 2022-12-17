@@ -4,8 +4,8 @@ use crate::datasrc::prototype::{Message, MessageMeta};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RpcMessage {
-    meta: RpcMessageMeta,
-    payload: std::vec::Vec<u8>,
+    pub meta: RpcMessageMeta,
+    pub payload: std::vec::Vec<u8>,
 }
 
 impl RpcMessage {

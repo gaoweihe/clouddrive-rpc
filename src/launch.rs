@@ -1,8 +1,12 @@
+use std::vec;
+
 use anyhow::{Result, Ok};
 
 use clouddrive_rpc::conf::conf::Conf;
 use clouddrive_rpc::conf::conf::CONF;
 use clouddrive_rpc::datasrc::message::message::RpcMessage;
+use clouddrive_rpc::datasrc::message::message::RpcMessageMeta;
+use clouddrive_rpc::rpc::channel::Channel;
 use tracing_subscriber::{prelude::*, filter::LevelFilter};
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -26,12 +30,29 @@ pub fn launch_service() -> Result<()> {
 
     let mut msg = RpcMessage::new();
     msg.set_payload("dummy".as_bytes().to_vec());
-    webdav.put("test.cdrpc".to_string(), &msg).unwrap();
-    webdav.get("test.cdrpc".to_string()).unwrap();
+    let msg = bincode::serialize(&msg).unwrap();
+    webdav.put_by_rel_path("test.cdrpc".to_string(), &msg).unwrap();
+    webdav.get_by_rel_path("test.cdrpc".to_string()).unwrap();
     let result = webdav.list("".to_string()).unwrap();
-    tracing::info!("result: {:?}", result);
+    tracing::trace!("result: {:?}", result);
     webdav.delete("test.cdrpc".to_string()).unwrap();
     webdav.clear("".to_string()).unwrap();
+
+    let mut msg_vec = vec![];
+    let mut msg = RpcMessage::new();
+
+    let send_string = "hello".to_string();
+    tracing::info!("send {:?}", send_string);
+
+    let payload = send_string.as_bytes().to_vec();
+    msg.set_payload(payload);
+    msg_vec.push((msg, 0));
+    webdav.send(msg_vec).unwrap();
+    let msg_list = webdav.poll().unwrap();
+    for msg in msg_list {
+        let recv_string = String::from_utf8(msg.payload).unwrap();
+        tracing::info!("recv {:?}", recv_string);
+    }
 
     Ok(())
 }

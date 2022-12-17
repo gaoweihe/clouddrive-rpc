@@ -1,26 +1,33 @@
-use crate::datasrc::{message::message::{RpcMessage}};
+use crate::datasrc::{message::message::{RpcMessage}, prototype::{DataSource, Message, MessageMeta}};
 
 use super::callback::CallBackBox;
 
-pub struct RpcContext {
+pub struct RpcContext<SerMsg, SerMeta>
+where SerMsg: Message<SerMeta> + serde::Serialize,
+    SerMeta: MessageMeta + serde::Serialize {
     // send queue
     pub send_queue: std::sync::Arc<
         std::sync::Mutex<
             std::collections::VecDeque<
-                RpcMessage
+            SerMsg
     >>>,
     pub recv_queue: std::sync::Arc<
         std::sync::Mutex<
             std::collections::VecDeque<
-                RpcMessage
+            SerMsg
     >>>,
     pub cb_map: std::collections::HashMap<
         u64, 
         CallBackBox
     >,
+
+    pub data_source: Option<Box<dyn DataSource<SerMsg, SerMeta>>>, 
 }
 
-impl RpcContext {
+impl<SerMsg, SerMeta> RpcContext<SerMsg, SerMeta>
+where SerMsg: Message<SerMeta> + serde::Serialize,
+    SerMeta: MessageMeta + serde::Serialize 
+{
     pub fn new() -> Self {
         RpcContext {
             send_queue: std::sync::Arc::new(
@@ -32,6 +39,7 @@ impl RpcContext {
                     std::collections::VecDeque::new()
             )),
             cb_map: std::collections::HashMap::new(),
+            data_source: None,
         }
     }
 

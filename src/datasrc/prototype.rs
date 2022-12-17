@@ -17,7 +17,7 @@ where SerMsg: Message<SerMeta> + Serialize,
       SerMeta: MessageMeta + Serialize {
     fn connect(&mut self, uri: &str, opt: Option<std::vec::Vec<String>>) -> anyhow::Result<()>;
     fn disconnect(&mut self) -> anyhow::Result<()>;
-    fn put(&mut self, path: String, msg: &SerMsg) -> anyhow::Result<()>;
+    fn put(&mut self, path: String, msg: &std::vec::Vec<u8>) -> anyhow::Result<()>;
     fn get(&mut self, path: String) -> anyhow::Result<std::vec::Vec<u8>>;
     fn list(&mut self, path: String) -> anyhow::Result<std::vec::Vec<String>>;
     fn clear(&mut self, path: String) -> anyhow::Result<()>;

@@ -2,7 +2,7 @@ use std::{io::Cursor};
 
 use hyperdav::Client;
 
-use crate::datasrc::{prototype::{DataSource, Message}, message::message::{RpcMessage, RpcMessageMeta}};
+use crate::{datasrc::{prototype::{DataSource, Message}, message::message::{RpcMessage, RpcMessageMeta}}, conf::conf::CONF};
 
 use super::webdav::WebDAV;
 
@@ -36,22 +36,22 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
         Ok(())
     }
 
-    fn put(&mut self, path: String, msg: &RpcMessage) -> anyhow::Result<()> {
-        let full_path = self.get_full_path(&path);
+    fn put(&mut self, path: String, msg: &Vec<u8>) -> anyhow::Result<()> {
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
 
-        client.put(Cursor::new(msg.get_payload()), &[full_path]).unwrap();
+        tracing::trace!("putting {:?} into {:?}", msg, path);
+        client.put(Cursor::new(msg.clone()), &[path]).unwrap();
 
         Ok(())
     }
 
     fn get(&mut self, path: String) -> anyhow::Result<std::vec::Vec<u8>> {
-        let full_path = self.get_full_path(&path);
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
 
-        let mut result = client.get(&[full_path]).unwrap();
+        tracing::trace!("getting {:?}", path);
+        let mut result = client.get(&[path]).unwrap();
         let result = result.text().unwrap().as_bytes().to_vec();
 
         Ok(result)
@@ -63,14 +63,21 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
         let client = binding.lock().unwrap();
         
         let result = client.list(&[full_path]).unwrap();
-        let result = result.iter().map(|x| x.href.clone()).collect::<Vec<String>>();
+        let result = result.iter().map(|x| {
+            let conf = CONF.get().unwrap();
+            let href = x.href.clone();
+            let work_dir = conf.workdir.clone() + "/";
+            let href = href.replace(&work_dir, "");
+            href
+        }).collect::<Vec<String>>();
+
+        tracing::trace!("list result: {:?}", result);
 
         Ok(result)
     }
 
     fn clear(&mut self, _path: String) -> anyhow::Result<()> {
         self.list("".to_string()).unwrap().iter().for_each(|x| {
-            tracing::info!("delete {}", x);
             self.delete(x.clone()).unwrap();
         });
         
@@ -81,6 +88,7 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
 
     fn delete(&mut self, path: String) -> anyhow::Result<()> {
         let full_path = self.get_full_path(&path);
+        tracing::trace!("deleting {:?}", full_path);
 
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
@@ -90,12 +98,11 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
     }
 
     fn mv(&mut self, src: String, dst: String) -> anyhow::Result<()> {
-        let src_fp = self.get_full_path(&src);
-        let dst_fp = self.get_full_path(&dst);
-
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
-        let _result = client.mv(&[src_fp], &[dst_fp]).unwrap();
+
+        tracing::trace!("moving {:?} to {:?}", src, dst);
+        let _result = client.mv(&[src], &[dst]).unwrap();
 
         Ok(())
     }
@@ -122,13 +129,29 @@ impl DataSource<RpcMessage, RpcMessageMeta> for WebDAV
 }
 
 impl WebDAV {
+    pub fn get_by_rel_path(&mut self, path: String) -> anyhow::Result<std::vec::Vec<u8>> {
+        let full_path = self.get_full_path(&path);
+        let result = self.get(full_path).unwrap();
+
+        Ok(result)
+    }
+
+    pub fn put_by_rel_path(&mut self, path: String, msg: &Vec<u8>) -> anyhow::Result<()> {
+        let full_path = self.get_full_path(&path);
+        self.put(full_path, msg).unwrap();
+
+        Ok(())
+    }
+}
+
+impl WebDAV {
     fn get_full_path(&self, path: &String) -> String {
         let full_path = self.work_dir.clone() + "/" + &path;
         full_path
     }
 
     fn get_read_path(&self, path: &String) -> String {
-        let read_path = "read/".to_string() + &path;
+        let read_path = path.replace("unread", "read");
         read_path
     }
 
@@ -139,6 +162,8 @@ impl WebDAV {
     }
 
     fn create_work_dir(&mut self) -> anyhow::Result<()> {
+        let conf = CONF.get().unwrap();
+
         let binding = self.client.as_mut().unwrap();
         let client = binding.lock().unwrap();
         let result = client.list(&["clouddrive-rpc"]);
@@ -150,6 +175,42 @@ impl WebDAV {
                 self.create_work_dir_no_check().unwrap();
             },
         }
+
+        let binding = self.client.as_mut().unwrap();
+        let client = binding.lock().unwrap();
+        let path = format!("clouddrive-rpc/{}", conf.get_node_id());
+        let result = client.list(&[&path]);
+        match result {
+            Ok(_res) => {},
+            Err(_e) => {
+                client.mkcol(&[&path]).unwrap();
+            },
+        }
+        drop(client);
+
+        let binding = self.client.as_mut().unwrap();
+        let client = binding.lock().unwrap();
+        let path = format!("clouddrive-rpc/{}/read", conf.get_node_id());
+        let result = client.list(&[&path]);
+        match result {
+            Ok(_res) => {},
+            Err(_e) => {
+                client.mkcol(&[&path]).unwrap();
+            },
+        }
+        drop(client);
+
+        let binding = self.client.as_mut().unwrap();
+        let client = binding.lock().unwrap();
+        let path = format!("clouddrive-rpc/{}/unread", conf.get_node_id());
+        let result = client.list(&[&path]);
+        match result {
+            Ok(_res) => {},
+            Err(_e) => {
+                client.mkcol(&[&path]).unwrap();
+            },
+        }
+        drop(client);
 
         Ok(())
     }
@@ -163,6 +224,21 @@ impl WebDAV {
     }
 
     fn mark_as_read_no_check(&mut self, path: String) -> anyhow::Result<()> {
+        let read_path = self.get_read_path(&path);
+        
+        self.mv(path, read_path).unwrap();
+
+        Ok(())
+    }
+
+    pub fn mark_as_read(&mut self, path: String) -> anyhow::Result<()> {
+        tracing::trace!("marking {:?} as read", path);
+        self.mark_as_read_no_check(path).unwrap();
+
+        Ok(())
+    }
+
+    fn mark_as_read_by_rel_path_no_check(&mut self, path: String) -> anyhow::Result<()> {
         let read_full_path = self.get_read_full_path(&path);
         let full_path = self.get_full_path(&path);
         
@@ -171,8 +247,8 @@ impl WebDAV {
         Ok(())
     }
 
-    fn mark_as_read(&mut self, path: String) -> anyhow::Result<()> {
-        self.mark_as_read_no_check(path).unwrap();
+    pub fn mark_as_read_by_rel_path(&mut self, path: String) -> anyhow::Result<()> {
+        self.mark_as_read_by_rel_path_no_check(path).unwrap();
 
         Ok(())
     }
