@@ -21,7 +21,7 @@ argparse = "0.2"
 once_cell = "1.13"
 
 [dependencies.tokio]
-version = "1.19"
+version = "1.24"
 features = [
     "full"
 ]
